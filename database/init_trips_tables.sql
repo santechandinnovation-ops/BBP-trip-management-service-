@@ -1,5 +1,12 @@
 -- Create ENUM types for Trip Management
-CREATE TYPE IF NOT EXISTS trip_status AS ENUM ('RECORDING', 'COMPLETED');
+DO $$
+BEGIN
+    BEGIN
+        CREATE TYPE trip_status AS ENUM ('RECORDING', 'PAUSED', 'FINISHED', 'CANCELLED');
+    EXCEPTION WHEN duplicate_object THEN
+        RAISE NOTICE 'Type trip_status already exists, skipping creation';
+    END;
+END $$;
 
 -- Trips table
 CREATE TABLE IF NOT EXISTS trips (
