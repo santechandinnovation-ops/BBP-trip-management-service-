@@ -1,5 +1,5 @@
 -- Create ENUM types for Trip Management
-CREATE TYPE trip_status AS ENUM ('RECORDING', 'COMPLETED');
+CREATE TYPE IF NOT EXISTS trip_status AS ENUM ('RECORDING', 'COMPLETED');
 
 -- Trips table
 CREATE TABLE IF NOT EXISTS trips (
