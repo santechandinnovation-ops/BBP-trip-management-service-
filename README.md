@@ -1,1 +1,0 @@
-# BBP-trip-management-service-
