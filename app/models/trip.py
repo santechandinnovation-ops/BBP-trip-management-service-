@@ -5,7 +5,9 @@ from enum import Enum
 
 class TripStatus(str, Enum):
     RECORDING = "RECORDING"
-    COMPLETED = "COMPLETED"
+    PAUSED = "PAUSED"
+    FINISHED = "FINISHED"
+    CANCELLED = "CANCELLED"
 
 class TripCreate(BaseModel):
     startTime: datetime
@@ -32,8 +34,9 @@ class CoordinateResponse(BaseModel):
 class WeatherData(BaseModel):
     temperature: Optional[float] = None
     conditions: Optional[str] = None
-    windSpeed: Optional[float] = None
-    windDirection: Optional[str] = None
+    wind_speed: Optional[float] = None
+    wind_direction: Optional[str] = None
+    humidity: Optional[int] = None
 
 class TripCompleteResponse(BaseModel):
     tripId: str
