@@ -18,6 +18,18 @@ class CoordinateInput(BaseModel):
     timestamp: datetime
     elevation: Optional[float] = None
 
+
+class BatchCoordinatesInput(BaseModel):
+    """Batch of coordinates to be sent at once (more efficient than one by one)."""
+    coordinates: List[CoordinateInput]
+
+
+class BatchCoordinatesResponse(BaseModel):
+    """Response for batch coordinate upload."""
+    addedCount: int
+    message: str
+
+
 class TripComplete(BaseModel):
     endTime: datetime
 

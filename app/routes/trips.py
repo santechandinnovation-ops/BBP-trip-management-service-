@@ -7,7 +7,8 @@ import logging
 from app.models.trip import (
     TripCreate, TripResponse, CoordinateInput, CoordinateResponse,
     TripComplete, TripCompleteResponse, TripHistoryResponse, TripDetail,
-    TripSummary, CoordinateDetail, WeatherData
+    TripSummary, CoordinateDetail, WeatherData, BatchCoordinatesInput,
+    BatchCoordinatesResponse
 )
 from app.utils.security import get_current_user
 from app.utils.geo_utils import calculate_trip_statistics
@@ -103,6 +104,81 @@ async def add_coordinate(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to add coordinate")
     finally:
         db.return_connection(conn)
+
+
+@router.post("/trips/{trip_id}/coordinates/batch", response_model=BatchCoordinatesResponse, status_code=status.HTTP_201_CREATED)
+async def add_coordinates_batch(
+    trip_id: str,
+    batch: BatchCoordinatesInput,
+    user_id: str = Depends(get_current_user)
+):
+    """Add multiple GPS coordinates to active trip in a single request (more efficient)."""
+    conn = db.get_connection()
+    try:
+        cursor = conn.cursor()
+        
+        # Verify trip ownership and status
+        cursor.execute("""
+            SELECT user_id, status FROM trips WHERE trip_id = %s
+        """, (trip_id,))
+        result = cursor.fetchone()
+        
+        if not result:
+            raise TripNotFoundException("Trip not found")
+        
+        trip_user_id, trip_status = result
+        
+        if trip_user_id != user_id:
+            raise UnauthorizedTripAccessException("User does not own this trip")
+        
+        if trip_status != 'RECORDING':
+            raise TripAlreadyCompletedException("Trip already completed")
+        
+        # Get current max sequence order
+        cursor.execute("""
+            SELECT COALESCE(MAX(sequence_order), 0) FROM trip_coordinates WHERE trip_id = %s
+        """, (trip_id,))
+        current_max = cursor.fetchone()[0]
+        
+        # Insert all coordinates in batch
+        added_count = 0
+        for i, coord in enumerate(batch.coordinates):
+            coordinate_id = str(uuid.uuid4())
+            sequence_order = current_max + i + 1
+            
+            cursor.execute("""
+                INSERT INTO trip_coordinates
+                (coordinate_id, trip_id, latitude, longitude, timestamp, elevation, sequence_order)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (
+                coordinate_id, trip_id, coord.latitude, coord.longitude,
+                coord.timestamp, coord.elevation, sequence_order
+            ))
+            added_count += 1
+        
+        conn.commit()
+        cursor.close()
+        
+        logger.info(f"Added {added_count} coordinates to trip {trip_id}")
+        
+        return BatchCoordinatesResponse(
+            addedCount=added_count,
+            message=f"Successfully added {added_count} coordinates"
+        )
+        
+    except TripNotFoundException:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
+    except UnauthorizedTripAccessException:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User does not own this trip")
+    except TripAlreadyCompletedException:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Trip already completed")
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error adding batch coordinates: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to add coordinates")
+    finally:
+        db.return_connection(conn)
+
 
 @router.put("/trips/{trip_id}/complete", response_model=TripCompleteResponse)
 async def complete_trip(
