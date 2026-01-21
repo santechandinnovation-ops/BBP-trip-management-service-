@@ -56,7 +56,7 @@ def calculate_trip_statistics(coordinates: List[Tuple]) -> dict:
         - total_distance: in meters
         - duration: in seconds
         - average_speed: in m/s
-        - max_speed: in m/s
+        - max_speed: in m/s (calculated as max of 3-segment moving average to filter spikes)
     """
     if len(coordinates) < 2:
         return {
@@ -68,7 +68,7 @@ def calculate_trip_statistics(coordinates: List[Tuple]) -> dict:
     
     total_distance = 0.0
     max_speed = 0.0
-    valid_speeds = []
+    segment_speeds = []  # Store all valid segment speeds for moving average
     
     # Parse all timestamps first
     parsed_coords = []
@@ -114,11 +114,20 @@ def calculate_trip_statistics(coordinates: List[Tuple]) -> dict:
         # Calculate segment speed in m/s
         segment_speed = calculate_speed_ms(segment_distance, time_diff)
         
-        # Filter out unrealistic speeds (> 50 m/s = 180 km/h for a bike is impossible)
+        # Filter out unrealistic speeds (> 20 m/s = 72 km/h for a bike is very fast)
         # This filters GPS jumps/errors
-        if segment_speed < 50:  # 50 m/s = 180 km/h max reasonable speed
-            valid_speeds.append(segment_speed)
-            max_speed = max(max_speed, segment_speed)
+        if segment_speed < 20:  # 20 m/s = 72 km/h max reasonable speed for cycling
+            segment_speeds.append(segment_speed)
+    
+    # Calculate max speed using 3-segment moving average to filter device shakes
+    # This smooths out momentary GPS spikes from device movement
+    if len(segment_speeds) >= 3:
+        for i in range(len(segment_speeds) - 2):
+            window_avg = (segment_speeds[i] + segment_speeds[i+1] + segment_speeds[i+2]) / 3
+            max_speed = max(max_speed, window_avg)
+    elif len(segment_speeds) > 0:
+        # For short trips, use max of available speeds
+        max_speed = max(segment_speeds)
     
     # Calculate duration from first to last timestamp
     start_time = parsed_coords[0][2]
