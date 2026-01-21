@@ -260,6 +260,63 @@ async def complete_trip(
     finally:
         db.return_connection(conn)
 
+
+@router.delete("/trips/{trip_id}", status_code=status.HTTP_200_OK)
+async def delete_trip(
+    trip_id: str,
+    user_id: str = Depends(get_current_user)
+):
+    """Delete a trip and all its associated data (coordinates, weather)."""
+    conn = db.get_connection()
+    try:
+        cursor = conn.cursor()
+        
+        # Verify trip exists and belongs to user
+        cursor.execute("""
+            SELECT user_id FROM trips WHERE trip_id = %s
+        """, (trip_id,))
+        result = cursor.fetchone()
+        
+        if not result:
+            raise TripNotFoundException("Trip not found")
+        
+        if result[0] != user_id:
+            raise UnauthorizedTripAccessException("User does not own this trip")
+        
+        # Delete associated weather data first (foreign key constraint)
+        cursor.execute("""
+            DELETE FROM trip_weather WHERE trip_id = %s
+        """, (trip_id,))
+        
+        # Delete associated coordinates (foreign key constraint)
+        cursor.execute("""
+            DELETE FROM trip_coordinates WHERE trip_id = %s
+        """, (trip_id,))
+        
+        # Delete the trip itself
+        cursor.execute("""
+            DELETE FROM trips WHERE trip_id = %s
+        """, (trip_id,))
+        
+        conn.commit()
+        cursor.close()
+        
+        logger.info(f"Trip {trip_id} deleted by user {user_id}")
+        
+        return {"message": "Trip deleted successfully", "tripId": trip_id}
+        
+    except TripNotFoundException:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
+    except UnauthorizedTripAccessException:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User does not own this trip")
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error deleting trip: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete trip")
+    finally:
+        db.return_connection(conn)
+
+
 @router.get("/trips", response_model=TripHistoryResponse)
 async def get_trip_history(user_id: str = Depends(get_current_user)):
     """Retrieve trip history for authenticated user."""
