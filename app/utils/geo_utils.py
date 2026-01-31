@@ -113,12 +113,12 @@ def calculate_trip_statistics(coordinates: List[Tuple]) -> dict:
         # calc segment speed in m/s
         segment_speed = calculate_speed_ms(segment_distance, time_diff)
         
-        # filter unrealistic speeds (> 20m/s = 72km/h is crazy fast for a bike)
+        # filter unrealistic speeds (> 20m/s = 72km/h is too fast for a bike)
         # this helps filter out gps jumps and errors
         if segment_speed < 20:  # 20 m/s = 72 km/h max reasonable bike speed
             segment_speeds.append(segment_speed)
     
-    # calc max speed using 3-segment moving avg to smooth out device shakes
+    # calculates max speed using 3-segment moving avg to smooth out device shakes
     # this way momentry gps spikes dont mess up the max speed
     if len(segment_speeds) >= 3:
         for i in range(len(segment_speeds) - 2):

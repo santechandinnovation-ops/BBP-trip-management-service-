@@ -17,11 +17,11 @@ def setup_database():
             sql_script = f.read()
         cursor.execute(sql_script)
         conn.commit()
-        print("✅ Trip Management tables created successfully!")
+        print("Trip Management tables created successfully!")
         cursor.close()
         conn.close()
     except Exception as e:
-        print(f"❌ Error setting up database: {e}")
+        print(f"Error setting up database: {e}")
         raise
 
 if __name__ == "__main__":
