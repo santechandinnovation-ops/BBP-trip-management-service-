@@ -46,8 +46,8 @@ class CoordinateResponse(BaseModel):
 class WeatherData(BaseModel):
     temperature: Optional[float] = None
     conditions: Optional[str] = None
-    wind_speed: Optional[float] = None
-    wind_direction: Optional[str] = None
+    windSpeed: Optional[float] = None
+    windDirection: Optional[str] = None
     humidity: Optional[int] = None
 
 class TripCompleteResponse(BaseModel):
