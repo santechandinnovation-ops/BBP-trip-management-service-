@@ -10,21 +10,21 @@ async def fetch_current_weather(
     longitude: float
 ) -> Optional[Dict]:
     """
-    Fetch current weather data from OpenWeatherMap API.
-    Returns weather data dict or None if service unavailable.
+    fetch current wether data from openweathermap api
+    returns weather dict or None if servise unavailable
     """
     if not settings.OPENWEATHERMAP_API_KEY:
         logger.warning("OpenWeatherMap API key not configured")
         return None
 
-    # OpenWeatherMap Current Weather API endpoint (free tier)
+    # openweathermap api endpoint (using free tier)
     url = "https://api.openweathermap.org/data/2.5/weather"
 
     params = {
         "lat": latitude,
         "lon": longitude,
         "appid": settings.OPENWEATHERMAP_API_KEY,
-        "units": "metric"  # Use Celsius
+        "units": "metric"  # use celsius
     }
 
     max_retries = 2
@@ -38,7 +38,7 @@ async def fetch_current_weather(
                 if response.status_code == 200:
                     data = response.json()
 
-                    # Extract relevant weather data from current weather response
+                    # get the importent weather data from response
                     return {
                         "temperature": data["main"]["temp"],
                         "conditions": data["weather"][0]["description"],
@@ -48,11 +48,11 @@ async def fetch_current_weather(
                     }
 
                 elif response.status_code >= 500:
-                    # Server error, retry
+                    # server error so we retry
                     logger.warning(f"Weather API server error (attempt {attempt + 1}): {response.status_code}")
                     continue
                 else:
-                    # Client error, don't retry
+                    # client error dont retry
                     logger.error(f"Weather API client error: {response.status_code}")
                     return None
 
@@ -67,7 +67,7 @@ async def fetch_current_weather(
     return None
 
 def get_wind_direction(degrees: float) -> str:
-    """Convert wind direction degrees to cardinal direction."""
+    """convert wind degrees to cardinal direciton like N, NE etc"""
     directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
     index = round(degrees / 45) % 8
     return directions[index]

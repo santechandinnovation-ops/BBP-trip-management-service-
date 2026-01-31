@@ -27,7 +27,7 @@ async def create_trip(
     trip_data: TripCreate,
     user_id: str = Depends(get_current_user)
 ):
-    """Create a new trip (start recording)."""
+    """create new trip (start recoridng gps)"""
     trip_id = str(uuid.uuid4())
     conn = db.get_connection()
     try:
@@ -60,7 +60,7 @@ async def add_coordinate(
     coordinate: CoordinateInput,
     user_id: str = Depends(get_current_user)
 ):
-    """Add GPS coordinate to active trip."""
+    """add gps coordniate to active trip"""
     conn = db.get_connection()
     try:
         cursor = conn.cursor()
@@ -112,12 +112,12 @@ async def add_coordinates_batch(
     batch: BatchCoordinatesInput,
     user_id: str = Depends(get_current_user)
 ):
-    """Add multiple GPS coordinates to active trip in a single request (more efficient)."""
+    """add multiple gps coords in one request (way more eficient)"""
     conn = db.get_connection()
     try:
         cursor = conn.cursor()
         
-        # Verify trip ownership and status
+        # check trip ownership and status first
         cursor.execute("""
             SELECT user_id, status FROM trips WHERE trip_id = %s
         """, (trip_id,))
@@ -134,13 +134,13 @@ async def add_coordinates_batch(
         if trip_status != 'RECORDING':
             raise TripAlreadyCompletedException("Trip already completed")
         
-        # Get current max sequence order
+        # get max sequence order so we know where to start
         cursor.execute("""
             SELECT COALESCE(MAX(sequence_order), 0) FROM trip_coordinates WHERE trip_id = %s
         """, (trip_id,))
         current_max = cursor.fetchone()[0]
         
-        # Insert all coordinates in batch
+        # insert all the coords in batch
         added_count = 0
         for i, coord in enumerate(batch.coordinates):
             coordinate_id = str(uuid.uuid4())
@@ -186,7 +186,7 @@ async def complete_trip(
     trip_complete: TripComplete,
     user_id: str = Depends(get_current_user)
 ):
-    """Mark trip as completed and calculate final statistics."""
+    """mark trip as done and calc final stats"""
     conn = db.get_connection()
     try:
         cursor = conn.cursor()

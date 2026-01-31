@@ -8,10 +8,10 @@ logger = logging.getLogger(__name__)
 
 def calculate_haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
-    Calculate distance between two coordinates using Haversine formula.
-    Returns distance in METERS (not kilometers) for accuracy.
+    calcualte distance between two coords using haversine formula
+    returns METERS not km for more acuracy
     """
-    R = 6371000  # Earth's radius in meters
+    R = 6371000  # earth radius in meters
     
     phi1 = math.radians(float(lat1))
     phi2 = math.radians(float(lat2))
@@ -28,7 +28,7 @@ def calculate_haversine_distance(lat1: float, lon1: float, lat2: float, lon2: fl
 
 
 def parse_timestamp(ts: Union[str, datetime]) -> datetime:
-    """Convert timestamp to datetime object, handling various formats."""
+    """convert timestmp to datetime obj, handles diferent formats"""
     if isinstance(ts, datetime):
         return ts
     if isinstance(ts, str):
@@ -41,7 +41,7 @@ def parse_timestamp(ts: Union[str, datetime]) -> datetime:
 
 
 def calculate_speed_ms(distance_meters: float, time_seconds: float) -> float:
-    """Calculate speed in m/s given distance in meters and time in seconds."""
+    """calc speed in m/s given distance and time"""
     if time_seconds <= 0:
         return 0.0
     return distance_meters / time_seconds
@@ -49,14 +49,13 @@ def calculate_speed_ms(distance_meters: float, time_seconds: float) -> float:
 
 def calculate_trip_statistics(coordinates: List[Tuple]) -> dict:
     """
-    Calculate trip statistics from list of (latitude, longitude, timestamp) tuples.
+    calc trip stats from list of (lat, lon, timestamp) tuples
     
-    Returns:
-        dict with:
-        - total_distance: in meters
-        - duration: in seconds
-        - average_speed: in m/s
-        - max_speed: in m/s (calculated as max of 3-segment moving average to filter spikes)
+    returns dict with:
+        - total_distance: meters
+        - duration: seconds  
+        - average_speed: m/s
+        - max_speed: m/s (uses 3-segmnet moving avg to filter out gps spikes)
     """
     if len(coordinates) < 2:
         return {
@@ -68,9 +67,9 @@ def calculate_trip_statistics(coordinates: List[Tuple]) -> dict:
     
     total_distance = 0.0
     max_speed = 0.0
-    segment_speeds = []  # Store all valid segment speeds for moving average
+    segment_speeds = []  # store all valid speeds for moving avg later
     
-    # Parse all timestamps first
+    # parse all the timestamps first
     parsed_coords = []
     for coord in coordinates:
         lat, lon, ts = coord[0], coord[1], coord[2]
@@ -89,52 +88,52 @@ def calculate_trip_statistics(coordinates: List[Tuple]) -> dict:
             "max_speed": 0.0
         }
     
-    # Sort by timestamp to ensure correct order
+    # sort by timestamp to make sure theyre in right order
     parsed_coords.sort(key=lambda x: x[2])
     
     for i in range(len(parsed_coords) - 1):
         lat1, lon1, time1 = parsed_coords[i]
         lat2, lon2, time2 = parsed_coords[i + 1]
         
-        # Calculate segment distance in meters
+        # calc segment distance in meters
         segment_distance = calculate_haversine_distance(lat1, lon1, lat2, lon2)
         
-        # Skip very small movements (GPS noise) - less than 1 meter
+        # skip tiny movements (probly just gps noise) - less than 1m
         if segment_distance < 1:
             continue
             
         time_diff = (time2 - time1).total_seconds()
         
-        # Skip if time difference is too small or negative
+        # skip if time diff is too small or negative (somthing weird)
         if time_diff <= 0:
             continue
         
         total_distance += segment_distance
         
-        # Calculate segment speed in m/s
+        # calc segment speed in m/s
         segment_speed = calculate_speed_ms(segment_distance, time_diff)
         
-        # Filter out unrealistic speeds (> 20 m/s = 72 km/h for a bike is very fast)
-        # This filters GPS jumps/errors
-        if segment_speed < 20:  # 20 m/s = 72 km/h max reasonable speed for cycling
+        # filter unrealistic speeds (> 20m/s = 72km/h is crazy fast for a bike)
+        # this helps filter out gps jumps and errors
+        if segment_speed < 20:  # 20 m/s = 72 km/h max reasonable bike speed
             segment_speeds.append(segment_speed)
     
-    # Calculate max speed using 3-segment moving average to filter device shakes
-    # This smooths out momentary GPS spikes from device movement
+    # calc max speed using 3-segment moving avg to smooth out device shakes
+    # this way momentry gps spikes dont mess up the max speed
     if len(segment_speeds) >= 3:
         for i in range(len(segment_speeds) - 2):
             window_avg = (segment_speeds[i] + segment_speeds[i+1] + segment_speeds[i+2]) / 3
             max_speed = max(max_speed, window_avg)
     elif len(segment_speeds) > 0:
-        # For short trips, use max of available speeds
+        # for short trips just use max of availble speeds
         max_speed = max(segment_speeds)
     
-    # Calculate duration from first to last timestamp
+    # calc duration from first to last timestamp
     start_time = parsed_coords[0][2]
     end_time = parsed_coords[-1][2]
     duration = int((end_time - start_time).total_seconds())
     
-    # Calculate average speed
+    # calc average speed
     if duration > 0 and total_distance > 0:
         average_speed = total_distance / duration
     else:
