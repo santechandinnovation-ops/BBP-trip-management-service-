@@ -20,7 +20,6 @@ Handles trip lifecycle from creation to completion, including GPS coordinate tra
 - FastAPI
 - PostgreSQL (psycopg2)
 - HTTPX (weather API)
-- Geopy (distance calculations)
 - Python-Jose (JWT)
 
 ## API Endpoints
