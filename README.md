@@ -24,16 +24,16 @@ Handles trip lifecycle from creation to completion, including GPS coordinate tra
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check |
-| POST | `/trips` | Create new trip |
-| GET | `/trips` | List user trips |
-| GET | `/trips/{id}` | Get trip details |
-| POST | `/trips/{id}/coordinates` | Add single coordinate |
-| POST | `/trips/{id}/coordinates/batch` | Add coordinate batch |
-| POST | `/trips/{id}/complete` | Complete trip |
-| DELETE | `/trips/{id}` | Delete trip |
+| Method | Endpoint                        | Description           |
+|--------|---------------------------------|-----------------------|
+| GET    | `/health`                       | Health check          |
+| POST   | `/trips`                        | Create new trip       |
+| GET    | `/trips`                        | List user trips       |
+| GET    | `/trips/{id}`                   | Get trip details      |
+| POST   | `/trips/{id}/coordinates`       | Add single coordinate |
+| POST   | `/trips/{id}/coordinates/batch` | Add coordinate batch  |
+| POST   | `/trips/{id}/complete`          | Complete trip         |
+| DELETE | `/trips/{id}`                   | Delete trip           |
 
 ## Database Tables
 
